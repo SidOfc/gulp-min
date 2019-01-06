@@ -1,0 +1,39 @@
+{
+  "name": "gulp-min",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "watch": "npx gulp watch",
+    "build": "NODE_ENV=production npx gulp build",
+    "routes": "npx gulp routes --silent"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "babel": {
+    "presets": [
+      "@babel/preset-env"
+    ]
+  },
+  "devDependencies": {
+    "@babel/core": "^7.2.2",
+    "@babel/preset-env": "^7.2.3",
+    "autoprefixer": "^9.4.4",
+    "connect-modrewrite": "^0.10.2",
+    "delete": "^1.1.0",
+    "fs-extra": "^7.0.1",
+    "glob": "^7.1.3",
+    "gulp": "^4.0.0",
+    "gulp-babel": "^8.0.0",
+    "gulp-connect": "^5.7.0",
+    "gulp-cssnano": "^2.1.3",
+    "gulp-postcss": "^8.0.0",
+    "gulp-sass": "^4.0.2",
+    "gulp-touch-fd": "^2.0.0",
+    "merge2": "^1.2.3",
+    "node-sass": "^4.11.0",
+    "pug": "^2.0.3"
+  },
+  "dependencies": {}
+}

@@ -1,0 +1,21 @@
+- const compact = str => str.trim().replace(/\s+/g, ' ')
+
+mixin application_description(text)
+  meta(name="description" content=compact(text))
+
+mixin application_title(text)
+  title #{development && '[dev]'} #{compact(text)}
+
+mixin application_stylesheet
+  if development
+    link(rel="stylesheet" href=asset_path('application.css') media="all" type="text/css")
+  else
+    style
+      include /../../public/assets/css/application.css
+
+mixin application_javascript
+  if development
+    script(src=asset_path('application.js'))
+  else
+    script
+      include /../../public/assets/js/application.js
