@@ -59,7 +59,7 @@ const map2obj = map =>
 const logger = msg => new Transform({
     objectMode: true,
     transform(file, _, done) {
-        console.log(`${msg}: ${file.path}`);
+        if (verbose) console.log(`${msg}: ${file.path}`);
         done(null, file);
     }
 })
@@ -140,8 +140,6 @@ const pugify = (overrides = {}) => {
             file.contents = Buffer.from(compile(Object.assign({}, locals, {canonical_path: canonicalPath(file.path)})));
             file.extname = '.html';
 
-            if (verbose) console.log('compiled', file.path, '- dependencies:', compile.dependencies.length);
-
             done(null, file);
         }
     });
@@ -166,6 +164,7 @@ const compileViews = () =>
             path.join(viewDir.src, '**/*.pug')
         ], {since: lastRun(compileViews)}))
         .pipe(pugify())
+        .pipe(logger('compiled'))
         .pipe(dest(viewDir.dest));
 
 const buildHTML = series(buildPaths, compileViews);
@@ -173,6 +172,7 @@ const buildHTML = series(buildPaths, compileViews);
 const buildJS = () =>
     src(path.join(jsDir.src, '**/*.js'), {since: lastRun(buildJS)})
         .pipe(babel())
+        .pipe(logger('compiled'))
         .pipe(dest(jsDir.dest));
 
 const buildCSS = () =>
