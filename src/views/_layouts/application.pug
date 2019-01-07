@@ -1,0 +1,19 @@
+include /_mixins
+
+doctype html
+html
+  head
+    +application_title("Example application")
+    +application_description(
+      "Example application description \
+      with multiple lines"
+    )
+
+    +application_stylesheet
+    +application_javascript
+
+    meta(name="viewport" content="initial-scale=1.0, maximum-scale=7.0")
+    meta(name="robots" content="index, follow")
+    link(rel="canonical" href=canonical_path)
+  body
+    block content
