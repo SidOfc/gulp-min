@@ -1,5 +1,4 @@
 const {src, dest, symlink, watch, series, parallel, lastRun} = require('gulp');
-const {promisify} = require('util');
 const {Transform} = require('stream');
 const glob        = require('glob');
 const path        = require('path');
@@ -83,6 +82,7 @@ const logger = msg => new Transform({
     objectMode: true,
     transform(file, _, done) {
         if (verbose) console.log(`${msg}: ${file.path.replace(rootDir.src, '')}`);
+
         done(null, file);
     }
 })
@@ -138,13 +138,10 @@ const buildJS = () =>
         .pipe(logger('compiled'))
         .pipe(dest(jsDir.dest));
 
+const sassHelpers = {'asset_path($asset)': asset => sassTypes.String(assetPath(asset.getValue()))};
 const buildCSS = () =>
     src(path.join(cssDir.src, '**/*.s{c,a}ss'))
-        .pipe(sass({
-            functions: {
-                'asset_url($asset)': asset => sassTypes.String(`url(${assetPath(asset.getValue())})`)
-            }
-        }).on('error', sass.logError))
+        .pipe(sass({functions: sassHelpers}).on('error', sass.logError))
         .pipe(postcss([autoprefixer(), cssnano()]))
         .pipe(logger('compiled'))
         .pipe(dest(cssDir.dest));
@@ -156,10 +153,12 @@ const watchHTML = () => watch([
         path.join(viewDir.src, '**/*.pug')
     ], series(buildPaths, buildHTML));
 
-const clean = async () => {
-    await promisify(fs.remove)(rootDir.dest);
-    await promisify(fs.mkdir)(rootDir.dest);
-    return src([imgDir.src], {allowEmpty: true}).pipe(symlink(assetDir.dest, {relativeSymlinks: true}));
+const clean = () => {
+    fs.removeSync(rootDir.dest);
+    fs.mkdirSync(rootDir.dest);
+
+    return src([imgDir.src], {allowEmpty: true})
+        .pipe(symlink(assetDir.dest, {relativeSymlinks: true}));
 }
 
 const build = series(clean, parallel(buildJS, buildCSS), series(buildPaths, buildHTML));
