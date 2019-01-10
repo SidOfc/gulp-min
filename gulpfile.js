@@ -63,6 +63,30 @@ const assetPath = entry => {
     return entry;
 };
 
+const babelHelpers = ({types}) => {
+    return {
+        visitor: {
+            CallExpression(path) {
+                if (path.node.callee.name === 'asset_path') {
+                    path.replaceWith(
+                        types.stringLiteral(assetPath(path.node.arguments[0].value)),
+                        path.node.elements
+                    );
+                }
+            },
+
+            Identifier(path) {
+                if (paths.hasOwnProperty(path.node.name)) {
+                    path.replaceWith(
+                        types.stringLiteral(paths[path.node.name]),
+                        path.node.elements
+                    );
+                }
+            }
+        }
+    };
+};
+
 const dependencies = input => {
     const feedback = merge(input);
     const transform = new Transform({
@@ -135,7 +159,7 @@ const buildHTML = () =>
 const buildJS = () =>
     src(path.join(jsDir.src, '**/*.js'), {since: lastRun(buildJS)})
         .pipe(reject(f => isPartial(f.path)))
-        .pipe(babel())
+        .pipe(babel({plugins: [babelHelpers]}))
         .pipe(logger('compiled'))
         .pipe(dest(jsDir.dest));
 
@@ -162,7 +186,7 @@ const clean = () => {
         .pipe(symlink(assetDir.dest, {relativeSymlinks: true}));
 };
 
-const build = series(clean, parallel(buildJS, buildCSS), series(buildPaths, buildHTML));
+const build = series(clean, buildPaths, parallel(buildJS, buildCSS), buildHTML);
 
 exports.build = build;
 exports.watch = series(build, parallel(watchJS, watchCSS, watchHTML, serve));
