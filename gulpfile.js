@@ -26,7 +26,8 @@ const cssDir   = {src: path.join(assetDir.src, 'css'),    dest: path.join(assetD
 const jsDir    = {src: path.join(assetDir.src, 'js'),     dest: path.join(assetDir.dest, 'js')};
 const imgDir   = {src: path.join(assetDir.src, 'img'),    dest: path.join(assetDir.dest, 'img')};
 
-let cache = {}, paths = {};
+let cache = {};
+let paths = {};
 
 const isPartial = path => /^_|\/_/i.test(path);
 const shouldRender = path => /\.(?:html|pug)$/i.test(path) && !isPartial(path);
@@ -43,7 +44,7 @@ const buildPaths = async () => {
 
             if (parts.length > 0) paths[parts.concat('path').join('_').toLowerCase()] = canonical;
         });
-}
+};
 
 const routes = async () => {
     await buildPaths();
@@ -52,7 +53,7 @@ const routes = async () => {
     const longestKey  = pathEntries.reduce((longest, [n]) => n.length > longest ? n.length : longest, 0);
 
     return pathEntries.forEach(([helper, url]) => console.log(`${helper.padEnd(longestKey)} => ${url}`));
-}
+};
 
 const assetPath = entry => {
     if (/\.(?:png|jpe?g|gif|svg)$/.test(entry)) return path.join(imgDir.dest.replace(rootDir.dest, ''), entry);
@@ -60,7 +61,7 @@ const assetPath = entry => {
     if (/\.js$/.test(entry)) return path.join(jsDir.dest.replace(rootDir.dest, ''), entry);
 
     return entry;
-}
+};
 
 const dependencies = input => {
     const feedback = merge(input);
@@ -85,14 +86,14 @@ const logger = msg => new Transform({
 
         done(null, file);
     }
-})
+});
 
 const reject = pred => new Transform({
     objectMode: true,
     transform(file, _, done) {
         done(null, !pred(file) ? file : null);
     }
-})
+});
 
 const pugify = () => new Transform({
     objectMode: true,
@@ -159,7 +160,7 @@ const clean = () => {
 
     return src([imgDir.src], {allowEmpty: true})
         .pipe(symlink(assetDir.dest, {relativeSymlinks: true}));
-}
+};
 
 const build = series(clean, parallel(buildJS, buildCSS), series(buildPaths, buildHTML));
 
