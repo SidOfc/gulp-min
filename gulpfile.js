@@ -127,9 +127,11 @@ const fingerprint = (fn = p => p) => new Transform({
     objectMode: true,
     transform(file, _, done) {
         if (env !== 'production') return done();
-        const hash = md5(file.contents.toString());
+
+        const hash     = md5(file.contents.toString());
         const original = file.path;
-        file.stem = `${file.stem}-${hash}`;
+        file.stem      = `${file.stem}-${hash}`;
+
         fingerprints[original.replace(rootDir.src, '')] = file.path.replace(rootDir.src, '');
 
         done(null, file);
