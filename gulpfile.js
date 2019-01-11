@@ -72,6 +72,13 @@ const babelHelpers = ({types}) => {
         visitor: {
             CallExpression(path) {
                 if (path.node.callee.name === 'asset_path') {
+                    if (path.node.arguments.length === 0) {
+                        throw new Error([
+                            "\n[js] Function 'asset_path' expects parameter 1 to be a String path to an asset.",
+                            `[js] Found in: ${this.file.opts.filename}:${path.node.loc.start.line}:${path.node.loc.start.column}\n`
+                        ].join("\n"));
+                    }
+
                     path.replaceWith(
                         types.stringLiteral(assetPath(path.node.arguments[0].value)),
                         path.node.elements
