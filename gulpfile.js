@@ -4,6 +4,7 @@ const glob        = require('glob');
 const path        = require('path');
 const fs          = require('fs-extra');
 const merge       = require('merge2');
+const md5         = require('md5');
 
 const pug          = require('pug');
 const babel        = require('gulp-babel');
@@ -26,8 +27,9 @@ const cssDir   = {src: path.join(assetDir.src, 'css'),    dest: path.join(assetD
 const jsDir    = {src: path.join(assetDir.src, 'js'),     dest: path.join(assetDir.dest, 'js')};
 const imgDir   = {src: path.join(assetDir.src, 'img'),    dest: path.join(assetDir.dest, 'img')};
 
-let cache = {};
-let paths = {};
+let cache        = {};
+let paths        = {};
+let fingerprints = {};
 
 const isPartial = path => /^_|\/_/i.test(path);
 const shouldRender = path => /\.(?:html|pug)$/i.test(path) && !isPartial(path);
@@ -56,11 +58,13 @@ const routes = async () => {
 };
 
 const assetPath = entry => {
-    if (/\.(?:png|jpe?g|gif|svg)$/.test(entry)) return path.join(imgDir.dest.replace(rootDir.dest, ''), entry);
-    if (/\.css$/.test(entry)) return path.join(cssDir.dest.replace(rootDir.dest, ''), entry);
-    if (/\.js$/.test(entry)) return path.join(jsDir.dest.replace(rootDir.dest, ''), entry);
+    let p = entry;
 
-    return entry;
+    if (/\.(?:png|jpe?g|gif|svg)$/.test(entry)) p = path.join(imgDir.dest.replace(rootDir.dest, ''), entry);
+    if (/\.css$/.test(entry)) p = path.join(cssDir.dest.replace(rootDir.dest, ''), entry);
+    if (/\.js$/.test(entry)) p = path.join(jsDir.dest.replace(rootDir.dest, ''), entry);
+
+    return fingerprints[p] || p;
 };
 
 const babelHelpers = ({types}) => {
@@ -119,6 +123,20 @@ const reject = pred => new Transform({
     }
 });
 
+const fingerprint = (fn = p => p) => new Transform({
+    objectMode: true,
+    transform(file, _, done) {
+        if (env !== 'production') return done();
+        const hash = md5(file.contents.toString());
+        const original = file.path;
+        file.stem = `${file.stem}-${hash}`;
+        fingerprints[original.replace(rootDir.src, '')] = file.path.replace(rootDir.src, '');
+
+        done(null, file);
+    }
+});
+
+
 const pugify = () => new Transform({
     objectMode: true,
     transform(file, _, done) {
@@ -160,6 +178,7 @@ const buildJS = () =>
     src(path.join(jsDir.src, '**/*.js'), {since: lastRun(buildJS)})
         .pipe(reject(f => isPartial(f.path)))
         .pipe(babel({plugins: [babelHelpers]}))
+        .pipe(fingerprint())
         .pipe(logger('compiled'))
         .pipe(dest(jsDir.dest));
 
@@ -168,6 +187,7 @@ const buildCSS = () =>
     src(path.join(cssDir.src, '**/*.s{c,a}ss'))
         .pipe(sass({functions: sassHelpers}).on('error', sass.logError))
         .pipe(postcss([autoprefixer(), cssnano()]))
+        .pipe(fingerprint())
         .pipe(logger('compiled'))
         .pipe(dest(cssDir.dest));
 
@@ -182,8 +202,14 @@ const clean = () => {
     fs.removeSync(rootDir.dest);
     fs.mkdirSync(rootDir.dest);
 
-    return src([imgDir.src], {allowEmpty: true})
-        .pipe(symlink(assetDir.dest, {relativeSymlinks: true}));
+    if (env === 'production') {
+        return src(path.join(imgDir.src, '**/*.*'), {allowEmpty: true})
+            .pipe(fingerprint())
+            .pipe(dest(imgDir.dest))
+    }
+
+    return src(imgDir.src, {allowEmpty: true})
+        .pipe(symlink(assetDir.dest));
 };
 
 const build = series(clean, buildPaths, parallel(buildJS, buildCSS), buildHTML);
