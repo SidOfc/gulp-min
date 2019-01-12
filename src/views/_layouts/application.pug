@@ -1,16 +1,13 @@
-include /_mixins
+block settings
 
 doctype html
 html
   head
-    +application_title("Example application")
-    +application_description(
-      "Example application description \
-      with multiple lines"
-    )
+    title= squeeze(title || 'Example application')
+    meta(name="description" content=squeeze(description || 'Example application description'))
 
-    +application_stylesheet
-    +application_javascript
+    link(rel="stylesheet" href=asset_path('application.css') media="all" type="text/css")
+    script(src=asset_path('application.js'))
 
     meta(name="viewport" content="initial-scale=1.0, maximum-scale=7.0")
     meta(name="robots" content="index, follow")

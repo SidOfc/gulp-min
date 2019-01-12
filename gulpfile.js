@@ -133,13 +133,13 @@ const reject = pred => new Transform({
 const fingerprint = (fn = p => p) => new Transform({
     objectMode: true,
     transform(file, _, done) {
-        if (env !== 'production') return done();
+        if (env === 'production') {
+            const hash     = md5(file.contents.toString());
+            const original = file.path;
+            file.stem      = `${file.stem}-${hash}`;
 
-        const hash     = md5(file.contents.toString());
-        const original = file.path;
-        file.stem      = `${file.stem}-${hash}`;
-
-        fingerprints[original.replace(rootDir.src, '')] = file.path.replace(rootDir.src, '');
+            fingerprints[original.replace(rootDir.src, '')] = file.path.replace(rootDir.src, '');
+        }
 
         done(null, file);
     }
@@ -158,6 +158,7 @@ const pugify = () => new Transform({
         file.contents = Buffer.from(compile({
             [env]: true,
             asset_path: assetPath,
+            squeeze: str => (str || '').trim().replace(/\s+/g, ' '),
             canonical_path: canonicalPath(file.path),
             ...paths
         }));
