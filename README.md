@@ -3,7 +3,7 @@
 This generator is based on `node` and uses `gulp` together with `sass`, `babel`, `pug`, and `connect` to provide an incremental build system.
 It uses `npm` scripts and `NODE_ENV` to determine the build environment.
 
-# :zap: Setup
+# Setup
 
 **This step must be skipped if the project is already set up.**
 
@@ -20,7 +20,7 @@ git add .
 git commit -m "Initial commit"
 ```
 
-## :hammer_and_wrench: Building
+## Building
 
 There are two modes in which this project can be generated:
 
@@ -29,7 +29,7 @@ There are two modes in which this project can be generated:
 
 Production mode enables **asset fingerprinting**.
 
-## :eyes: Watching
+## Watching
 
 Watching is done by running:
 
@@ -37,12 +37,12 @@ Watching is done by running:
 npm run watch
 ```
 
-# :rocket: Helpers
+#  Helpers
 
 This generator comes with some built-in helpers such as dynamic `*_path` variables based on existing pug templates
 and `asset_path` which converts asset paths.
 
-## :link: asset_path
+## asset_path
 
 This helper is available everywhere.
 It resolves asset paths relative to `/assets/:type` where `:type` is either `css` for assets ending in `.css`, `js` for assets ending in `.js` and `img` for assets ending in `/\.(?:png|jpe?g|gif|svg)$/`.
@@ -106,7 +106,7 @@ output HTML:
 <img class="logo" src="/assets/js/application-2ac4347e860b668.js" />
 ```
 
-## :link: [view]_path
+## [view]_path
 
 While `asset_path` is an actual function that you can call, all other `_path` helpers are just _properties_ that get _injected_.
 Paths are generated based on files present in `/src/views` directory, excluding partial paths (files or folders starting with `_`).
