@@ -33,7 +33,7 @@ let fingerprints = {};
 
 const isPartial = path => /^_|\/_/i.test(path);
 const shouldRender = path => /\.(?:html|pug)$/i.test(path) && !isPartial(path);
-const canonicalPath = path => path.replace(viewDir.src, '').replace(/(?:index)?\.(?:pug|html?)/i, '');
+const currentPath = path => path.replace(viewDir.src, '').replace(/(?:index)?\.(?:pug|html?)/i, '');
 
 const buildPaths = async () => {
     paths = {root_path: '/'};
@@ -41,10 +41,10 @@ const buildPaths = async () => {
     await glob
         .sync(path.join(viewDir.src, '**/*.pug'))
         .filter(shouldRender).forEach(p => {
-            const canonical = canonicalPath(p);
-            const parts = canonical.slice(1).split('/').filter(x => x);
+            const current = currentPath(p);
+            const parts = current.slice(1).split('/').filter(x => x);
 
-            if (parts.length > 0) paths[parts.concat('path').join('_').toLowerCase()] = canonical;
+            if (parts.length > 0) paths[parts.concat('path').join('_').toLowerCase()] = current;
         });
 };
 
@@ -159,7 +159,7 @@ const pugify = () => new Transform({
             [env]: true,
             asset_path: assetPath,
             squeeze: str => (str || '').trim().replace(/\s+/g, ' '),
-            canonical_path: canonicalPath(file.path),
+            current_path: currentPath(file.path),
             ...paths
         }));
 
