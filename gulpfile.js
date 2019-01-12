@@ -42,7 +42,7 @@ const buildPaths = async () => {
         .sync(path.join(viewDir.src, '**/*.pug'))
         .filter(shouldRender).forEach(p => {
             const current = currentPath(p);
-            const parts = current.slice(1).split('/').filter(x => x);
+            const parts   = current.slice(1).split('/').filter(x => x);
 
             if (parts.length > 0) paths[parts.concat('path').join('_').toLowerCase()] = current;
         });
@@ -152,13 +152,13 @@ const pugify = () => new Transform({
         const compile = pug.compile(file.contents, {basedir: viewDir.src, filename: file.path});
 
         Object.values(cache).forEach(deps => deps.delete(file.path));
-        compile.dependencies.forEach(dep => (cache[dep] = (cache[dep] || new Set()).add(file.path)));
+        compile.dependencies.forEach(dep  => (cache[dep] = (cache[dep] || new Set()).add(file.path)));
 
         file.extname = '.html';
         file.contents = Buffer.from(compile({
-            [env]: true,
-            asset_path: assetPath,
-            squeeze: str => (str || '').trim().replace(/\s+/g, ' '),
+            [env]:        true,
+            asset_path:   assetPath,
+            squeeze:      str => (str || '').trim().replace(/\s+/g, ' '),
             current_path: currentPath(file.path),
             ...paths
         }));
@@ -168,8 +168,8 @@ const pugify = () => new Transform({
 });
 
 const serve = () => connect.server({
-    root: rootDir.dest,
-    port: 5000,
+    root:       rootDir.dest,
+    port:       5000,
     livereload: true,
     middleware: () => [connectRewrite(['^.([^\\.]+)$ /$1.html [L]'])]
 });
