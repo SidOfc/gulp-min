@@ -31,9 +31,9 @@ let cache        = {};
 let paths        = {};
 let fingerprints = {};
 
-const isPartial = path => /^_|\/_/i.test(path);
+const isPartial    = path => /^_|\/_/i.test(path);
 const shouldRender = path => /\.(?:html|pug)$/i.test(path) && !isPartial(path);
-const currentPath = path => path.replace(viewDir.src, '').replace(/(?:index)?\.(?:pug|html?)/i, '');
+const currentPath  = path => path.replace(viewDir.src, '').replace(/(?:index)?\.(?:pug|html?)/i, '');
 
 const buildPaths = async () => {
     paths = {root_path: '/'};
@@ -134,7 +134,7 @@ const fingerprint = (fn = p => p) => new Transform({
     objectMode: true,
     transform(file, _, done) {
         if (env === 'production') {
-            const hash     = md5(file.contents.toString());
+            const hash     = md5(file.contents.toString()).slice(0, 15);
             const original = file.path;
             file.stem      = `${file.stem}-${hash}`;
 
