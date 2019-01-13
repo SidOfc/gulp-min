@@ -4,7 +4,8 @@
   "description": "",
   "scripts": {
     "watch": "npx gulp watch",
-    "build": "NODE_ENV=production npx gulp build",
+    "build": "npx gulp build",
+    "release": "NODE_ENV=production npx gulp build",
     "routes": "npx gulp routes --silent"
   },
   "keywords": [],
@@ -18,7 +19,7 @@
   "devDependencies": {
     "@babel/core": "^7.2.2",
     "@babel/preset-env": "^7.2.3",
-    "autoprefixer": "^9.4.4",
+    "autoprefixer": "^9.4.5",
     "connect-modrewrite": "^0.10.2",
     "fs-extra": "^7.0.1",
     "glob": "^7.1.3",

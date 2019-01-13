@@ -88,10 +88,15 @@ const babelHelpers = ({types}) => {
 
             Identifier(path) {
                 if (paths.hasOwnProperty(path.node.name)) {
-                    path.replaceWith(
-                        types.stringLiteral(paths[path.node.name]),
-                        path.node.elements
-                    );
+                    const parentNode = path.parentPath && path.parentPath.node;
+                    const isObjKey = parentNode && types.isObjectProperty(parentNode) && path.node === parentNode.key;
+
+                    if (!isObjKey) {
+                        path.replaceWith(
+                            types.stringLiteral(paths[path.node.name]),
+                            path.node.elements
+                        );
+                    }
                 }
             }
         }
