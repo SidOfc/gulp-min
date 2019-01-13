@@ -25,7 +25,7 @@ git commit -m "Initial commit"
 There are two modes in which this project can be generated:
 
 - **development** &mdash; `npm run build`
-- **production** &mdash; `NODE_ENV=production npm run build` (or `env NODE_ENV=production npm run build`)
+- **production** &mdash; `npm run release`
 
 Production mode enables **asset fingerprinting**.
 
@@ -135,3 +135,33 @@ output HTML:
 ```html
 <a href="/contact">Contact</a>
 ```
+
+# Routes
+
+An additional `npm run` script called `routes` is available.
+This script prints the path helpers that will be available as properties in JS/PUG.
+With the following file structure:
+
+```plain
+src/views/
+├── _layouts
+│   └── application.pug
+├── about.pug
+├── index.pug
+└── posts
+    ├── preprocessing.pug
+    └── routing.pug
+
+2 directories, 5 files
+```
+
+Running `npm run routes` will result in:
+
+```plain
+root_path                => /
+about_path               => /about
+posts_preprocessing_path => /posts/preprocessing
+posts_routing_path       => /posts/routing
+```
+
+The left hand side is the callable helper and the right hand side is the value it will produce when compiled.
