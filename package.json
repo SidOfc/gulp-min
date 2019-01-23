@@ -8,8 +8,10 @@
     "release": "NODE_ENV=production npx gulp build",
     "routes": "npx gulp routes --silent"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+
+  ],
+  "author": "Sidney Liebrand",
   "license": "MIT",
   "babel": {
     "presets": [
@@ -34,5 +36,6 @@
     "node-sass": "^4.11.0",
     "pug": "^2.0.3"
   },
-  "dependencies": {}
+  "dependencies": {
+  }
 }
