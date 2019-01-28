@@ -20,12 +20,13 @@ const connectRewrite = require('connect-modrewrite');
 const verbose = ['-s', '--silent', '-q', '--quiet'].every(flag => !process.argv.includes(flag));
 const env     = process.env.NODE_ENV || 'development';
 
-const rootDir  = {src: path.resolve('./src'),             dest: path.resolve('./public')};
-const viewDir  = {src: path.join(rootDir.src,  'views'),  dest: rootDir.dest};
-const assetDir = {src: path.join(rootDir.src,  'assets'), dest: path.join(rootDir.dest,  'assets')};
-const cssDir   = {src: path.join(assetDir.src, 'css'),    dest: path.join(assetDir.dest, 'css')};
-const jsDir    = {src: path.join(assetDir.src, 'js'),     dest: path.join(assetDir.dest, 'js')};
-const imgDir   = {src: path.join(assetDir.src, 'img'),    dest: path.join(assetDir.dest, 'img')};
+const rootDir   = {src: path.resolve('./src'),             dest: path.resolve('./public')};
+const viewDir   = {src: path.join(rootDir.src,  'views'),  dest: rootDir.dest};
+const assetDir  = {src: path.join(rootDir.src,  'assets'), dest: path.join(rootDir.dest,  'assets')};
+const cssDir    = {src: path.join(assetDir.src, 'css'),    dest: path.join(assetDir.dest, 'css')};
+const jsDir     = {src: path.join(assetDir.src, 'js'),     dest: path.join(assetDir.dest, 'js')};
+const imgDir    = {src: path.join(assetDir.src, 'img'),    dest: path.join(assetDir.dest, 'img')};
+const vendorDir = {src: path.join(rootDir.src,  'vendor'), dest: path.join(rootDir.dest,  'vendor')}
 
 let cache        = {};
 let paths        = {};
@@ -57,6 +58,12 @@ const routes = async () => {
     return pathEntries.forEach(([helper, url]) => console.log(`${helper.padEnd(longestKey)} => ${url}`));
 };
 
+const vendorPath = entry => {
+    const p = path.join(vendorDir.dest.replace(rootDir.dest, ''), entry);
+
+    return fingerprints[p] || p;
+};
+
 const assetPath = entry => {
     let p = entry;
 
@@ -71,7 +78,9 @@ const babelHelpers = ({types}) => {
     return {
         visitor: {
             CallExpression(path) {
-                if (path.node.callee.name === 'asset_path') {
+                const pathMatch = path.node.callee.name && path.node.callee.name.match(/(asset|vendor)_path/);
+
+                    if (pathMatch) {
                     if (path.node.arguments.length === 0) {
                         throw new Error([
                             "\n[js] Function 'asset_path' expects parameter 1 to be a String path to an asset.",
@@ -79,8 +88,10 @@ const babelHelpers = ({types}) => {
                         ].join("\n"));
                     }
 
+                    const pathFn = pathPatch[1] === 'asset' ? assetPath : vendorPath;
+
                     path.replaceWith(
-                        types.stringLiteral(assetPath(path.node.arguments[0].value)),
+                        types.stringLiteral(pathFn(path.node.arguments[0].value)),
                         path.node.elements
                     );
                 }
@@ -163,6 +174,7 @@ const pugify = () => new Transform({
         file.contents = Buffer.from(compile({
             [env]:        true,
             asset_path:   assetPath,
+            vendor_path:  vendorPath,
             squeeze:      str => (str || '').trim().replace(/\s+/g, ' '),
             current_path: currentPath(file.path),
             ...paths
@@ -197,7 +209,11 @@ const buildJS = () =>
         .pipe(logger('compiled'))
         .pipe(dest(jsDir.dest));
 
-const sassHelpers = {'asset_path($asset)': asset => sassTypes.String(assetPath(asset.getValue()))};
+const sassHelpers = {
+    'asset_path($asset)':  asset => sassTypes.String(assetPath(asset.getValue())),
+    'vendor_path($asset)': asset => sassTypes.String(vendorPath(asset.getValue()))
+};
+
 const buildCSS = () =>
     src(path.join(cssDir.src, '**/*.s{c,a}ss'))
         .pipe(sass({functions: sassHelpers}).on('error', sass.logError))
@@ -218,13 +234,20 @@ const clean = () => {
     fs.mkdirSync(rootDir.dest);
 
     if (env === 'production') {
-        return src(path.join(imgDir.src, '**/*.*'), {allowEmpty: true})
-            .pipe(fingerprint())
-            .pipe(dest(imgDir.dest))
+        return merge(
+            src(path.join(vendorDir.src, '**/*.*'), {allowEmpty: true})
+                .pipe(fingerprint())
+                .pipe(vendorDir.dest),
+            src(path.join(imgDir.src, '**/*.*'), {allowEmpty: true})
+                .pipe(fingerprint())
+                .pipe(dest(imgDir.dest))
+        );
     }
 
-    return src(imgDir.src, {allowEmpty: true})
-        .pipe(symlink(assetDir.dest));
+    return merge(
+        src(imgDir.src, {allowEmpty: true}).pipe(symlink(assetDir.dest)),
+        src(vendorDir.src, {allowEmpty: true}).pipe(symlink(rootDir.dest))
+    );
 };
 
 const build = series(clean, buildPaths, parallel(buildJS, buildCSS), buildHTML);

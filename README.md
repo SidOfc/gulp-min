@@ -29,6 +29,21 @@ There are two modes in which this project can be generated:
 
 Production mode enables **asset fingerprinting**.
 
+## Source files
+
+The `/src` directory contains all the files that make up your project.
+Inside it, the `/views` directory is processed using `pug`, `/assets/css` is processed using `sass` and `/assets/js` is processed using `babel`.
+Some [helpers](#helpers) are made available such as path helpers in every context, and an additional `squeeze` function in pug which compresses multiple whitespaces / newlines into single spaces.
+
+## Vendor files
+
+Sometimes you want to include some minified CSS or JS that doesn't need any preprocessing.
+This is where vendor files come in, the `/src/vendor` directory is directly symlinked (copied in production builds)
+to `/public/vendor` without any processing of files happening in between.
+
+Combined with the [`vendor_path`](#vendor_path) helper this allows one to easily reference these files
+without having to resort to using absolute paths.
+
 ## Watching
 
 Watching is done by running:
@@ -105,6 +120,12 @@ output HTML:
 
 <img class="logo" src="/assets/js/application-2ac4347e860b668.js" />
 ```
+
+## vendor_path
+
+This helper is available everywhere.
+It functions in exactly the same way that [`asset_path`](#asset_path) does except the source directory is different.
+Instead of using `/assets` it uses the `/vendor` directory. This is useful to include scripts that should not be preprocessed for example.
 
 ## [view]_path
 
