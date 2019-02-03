@@ -7,7 +7,8 @@ const merge       = require('merge2');
 const md5         = require('md5');
 
 const pug          = require('pug');
-const babel        = require('gulp-babel');
+const babelify     = require('babelify');
+const browserify   = require('browserify');
 const postcss      = require('gulp-postcss');
 const autoprefixer = require('autoprefixer');
 const cssnano      = require('cssnano');
@@ -74,7 +75,7 @@ const assetPath = entry => {
     return fingerprints[p] || p;
 };
 
-const babelHelpers = ({types}) => {
+const babelHelpers = ({types: t}) => {
     return {
         visitor: {
             CallExpression(path) {
@@ -88,10 +89,10 @@ const babelHelpers = ({types}) => {
                         ].join("\n"));
                     }
 
-                    const pathFn = pathPatch[1] === 'asset' ? assetPath : vendorPath;
+                    const pathFn = pathMatch[1] === 'asset' ? assetPath : vendorPath;
 
                     path.replaceWith(
-                        types.stringLiteral(pathFn(path.node.arguments[0].value)),
+                        t.stringLiteral(pathFn(path.node.arguments[0].value)),
                         path.node.elements
                     );
                 }
@@ -100,11 +101,11 @@ const babelHelpers = ({types}) => {
             Identifier(path) {
                 if (paths.hasOwnProperty(path.node.name)) {
                     const parentNode = path.parentPath && path.parentPath.node;
-                    const isObjKey = parentNode && types.isObjectProperty(parentNode) && path.node === parentNode.key;
+                    const isObjKey = parentNode && t.isObjectProperty(parentNode) && path.node === parentNode.key;
 
                     if (!isObjKey) {
                         path.replaceWith(
-                            types.stringLiteral(paths[path.node.name]),
+                            t.stringLiteral(paths[path.node.name]),
                             path.node.elements
                         );
                     }
@@ -130,58 +131,50 @@ const dependencies = input => {
     return feedback.pipe(transform);
 };
 
-const logger = msg => new Transform({
-    objectMode: true,
-    transform(file, _, done) {
-        if (verbose) console.log(`${msg}: ${file.path.replace(rootDir.src, '')}`);
+const T = transform =>
+    new Transform({objectMode: true, transform: (file, _, done) => transform(file, done)});
 
-        done(null, file);
-    }
+const tap = fn => T((file, done) => {
+    fn(file);
+    done(null, file);
 });
 
-const reject = pred => new Transform({
-    objectMode: true,
-    transform(file, _, done) {
-        done(null, !pred(file) ? file : null);
-    }
+const reject = pred => T((file, done) => done(null, !pred(file) ? file : null));
+const logger = msg => T((file, done) => {
+    verbose && console.log(`${msg}: ${file.path.replace(rootDir.src, '')}`);
+
+    done(null, file);
 });
 
-const fingerprint = (fn = p => p) => new Transform({
-    objectMode: true,
-    transform(file, _, done) {
-        if (env === 'production') {
-            const hash     = md5(file.contents.toString()).slice(0, 15);
-            const original = file.path;
-            file.stem      = `${file.stem}-${hash}`;
+const fingerprint = () => T((file, done) => {
+    if (env === 'production') {
+        const hash     = md5(file.contents.toString()).slice(0, 15);
+        const original = file.path;
+        file.stem      = `${file.stem}-${hash}`;
 
-            fingerprints[original.replace(rootDir.src, '')] = file.path.replace(rootDir.src, '');
-        }
-
-        done(null, file);
+        fingerprints[original.replace(rootDir.src, '')] = file.path.replace(rootDir.src, '');
     }
+
+    done(null, file);
 });
 
+const pugify = () => T((file, done) => {
+    const compile = pug.compile(file.contents, {basedir: viewDir.src, filename: file.path});
 
-const pugify = () => new Transform({
-    objectMode: true,
-    transform(file, _, done) {
-        const compile = pug.compile(file.contents, {basedir: viewDir.src, filename: file.path});
+    Object.values(cache).forEach(deps => deps.delete(file.path));
+    compile.dependencies.forEach(dep  => (cache[dep] = (cache[dep] || new Set()).add(file.path)));
 
-        Object.values(cache).forEach(deps => deps.delete(file.path));
-        compile.dependencies.forEach(dep  => (cache[dep] = (cache[dep] || new Set()).add(file.path)));
+    file.extname = '.html';
+    file.contents = Buffer.from(compile({
+        [env]:        true,
+        asset_path:   assetPath,
+        vendor_path:  vendorPath,
+        squeeze:      str => (str || '').trim().replace(/\s+/g, ' '),
+        current_path: currentPath(file.path),
+        ...paths
+    }));
 
-        file.extname = '.html';
-        file.contents = Buffer.from(compile({
-            [env]:        true,
-            asset_path:   assetPath,
-            vendor_path:  vendorPath,
-            squeeze:      str => (str || '').trim().replace(/\s+/g, ' '),
-            current_path: currentPath(file.path),
-            ...paths
-        }));
-
-        done(null, file);
-    }
+    done(null, file);
 });
 
 const serve = () => connect.server({
@@ -202,9 +195,13 @@ const buildHTML = () =>
         .pipe(connect.reload());
 
 const buildJS = () =>
-    src(path.join(jsDir.src, '**/*.js'), {since: lastRun(buildJS)})
+    src(path.join(jsDir.src, '**/*.js'), {since: lastRun(buildJS), read: false})
         .pipe(reject(f => isPartial(f.path)))
-        .pipe(babel({plugins: [babelHelpers]}))
+        .pipe(tap(file => {
+            file.contents = browserify(file.path, {debug: true})
+                .transform(babelify, {plugins: [babelHelpers]})
+                .bundle();
+        }))
         .pipe(fingerprint())
         .pipe(logger('compiled'))
         .pipe(dest(jsDir.dest));
