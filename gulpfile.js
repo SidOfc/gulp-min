@@ -234,7 +234,7 @@ const clean = () => {
         return merge(
             src(path.join(vendorDir.src, '**/*.*'), {allowEmpty: true})
                 .pipe(fingerprint())
-                .pipe(vendorDir.dest),
+                .pipe(dest(vendorDir.dest)),
             src(path.join(imgDir.src, '**/*.*'), {allowEmpty: true})
                 .pipe(fingerprint())
                 .pipe(dest(imgDir.dest))
